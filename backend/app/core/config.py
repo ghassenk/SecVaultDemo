@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
-    allowed_origins: list[str] = Field(default=["http://localhost:3000"])
+    allowed_origins: str = Field(default="http://localhost:3000")
 
     # Database
     database_url: str = Field(
@@ -79,13 +79,10 @@ class Settings(BaseSettings):
             )
         return v
 
-    @field_validator("allowed_origins", mode="before")
-    @classmethod
-    def parse_origins(cls, v):
-        """Parse origins from comma-separated string or list."""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        """Parse allowed_origins as a list."""
+        return [origin.strip() for origin in self.allowed_origins.split(",")]
 
 
 @lru_cache
