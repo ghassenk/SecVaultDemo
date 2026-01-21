@@ -18,13 +18,14 @@ export default defineConfig({
     // Security: Generate source maps only for debugging
     sourcemap: false,
     // Security: Minify for production
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        // Remove console.log in production
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild', // 'esbuild' is the default, so you can also just delete the line
+    // minify: 'terser',
+    // terserOptions: {
+    //   compress: {
+    //     // Remove console.log in production
+    //     drop_console: true,
+    //     drop_debugger: true,
+    //   },
+    // },
   },
 })
