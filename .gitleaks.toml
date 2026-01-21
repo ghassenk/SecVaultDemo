@@ -1,0 +1,41 @@
+# Gitleaks configuration for SecureVault
+# https://github.com/gitleaks/gitleaks
+
+title = "SecureVault Gitleaks Config"
+
+[extend]
+# Use the default gitleaks config as a base
+useDefault = true
+
+# Allow specific patterns (false positives)
+[allowlist]
+description = "Allowed patterns"
+paths = [
+    '''.env.example''',
+    '''docs/''',
+]
+regexes = [
+    '''CHANGE_ME''',
+    '''example''',
+]
+
+# Additional rules for project-specific secrets
+[[rules]]
+id = "securevault-jwt-secret"
+description = "SecureVault JWT Secret"
+regex = '''JWT_SECRET_KEY\s*=\s*['\"]?([A-Za-z0-9+/=]{32,})['\"]?'''
+tags = ["key", "jwt"]
+
+[[rules]]
+id = "securevault-encryption-key"
+description = "SecureVault Encryption Key"
+regex = '''ENCRYPTION_MASTER_KEY\s*=\s*['\"]?([A-Za-z0-9+/=]{32,})['\"]?'''
+tags = ["key", "encryption"]
+
+[[rules]]
+id = "postgres-password"
+description = "PostgreSQL Password"
+regex = '''POSTGRES_PASSWORD\s*=\s*['\"]?([^'\"\\s]{8,})['\"]?'''
+tags = ["password", "database"]
+[rules.allowlist]
+regexes = ['''securevault_dev_password''']
