@@ -1,0 +1,30 @@
+# .github/workflows/security.yml (high-level)
+
+name: Security Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  secrets-detection:
+    # Gitleaks - prevent committed secrets
+    
+  sast-backend:
+    # Bandit + Semgrep for Python
+    
+  sast-frontend:
+    # ESLint with security plugins
+    
+  dependency-scan:
+    # Trivy for both Python and npm dependencies
+    
+  dockerfile-lint:
+    # Hadolint for Dockerfile best practices
+    
+  container-scan:
+    # Trivy scan on built images
+    
+  unit-tests:
+    # Pytest (backend) + Vitest (frontend)
+    
+  dast:
+    # OWASP ZAP against running containers
