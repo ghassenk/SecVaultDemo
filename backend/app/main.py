@@ -18,8 +18,8 @@ from app.core.database import close_db, init_db
 from app.core.security import (
     configure_cors,
     configure_rate_limiting,
+    configure_security_headers,
     limiter,
-    security_headers_middleware,
 )
 
 # Configure logging
@@ -49,19 +49,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
     
-    try:
-        await init_db()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+    # Only initialize DB if not in test mode (tests handle their own DB)
+    if settings.environment != "testing":
+        try:
+            await init_db()
+            logger.info("Database initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
     
     yield
     
     # Shutdown
     logger.info("Shutting down application")
-    await close_db()
-    logger.info("Database connections closed")
+    if settings.environment != "testing":
+        await close_db()
+        logger.info("Database connections closed")
 
 
 def create_application() -> FastAPI:
@@ -84,14 +87,10 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure security
+    # Configure security (order matters - CORS should be outermost)
+    configure_security_headers(app)
     configure_cors(app)
     configure_rate_limiting(app)
-
-    # Add security headers middleware
-    @app.middleware("http")
-    async def add_security_headers(request: Request, call_next):
-        return await security_headers_middleware(request, call_next)
 
     # Rate limit error handler
     @app.exception_handler(RateLimitExceeded)
@@ -153,3 +152,4 @@ if __name__ == "__main__":
         reload=settings.debug,
         log_level="info",
     )
+    

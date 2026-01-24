@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     app_name: str = "SecureVault"
     app_version: str = "1.0.0"
     debug: bool = False
-    environment: Literal["development", "staging", "production"] = "development"
+    environment: Literal["development", "staging", "production", "testing"] = "development"
 
     # Server
     host: str = "0.0.0.0"
