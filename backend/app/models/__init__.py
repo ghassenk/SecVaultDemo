@@ -1,5 +1,7 @@
 """Database models."""
 
-# Models will be added later:
-# - User model
-# - Secret model
+from app.models.user import User
+
+__all__ = ["User"]
+
+# TODO Secret model
