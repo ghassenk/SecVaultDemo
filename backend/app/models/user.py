@@ -76,8 +76,15 @@ class User(Base):
         nullable=True,
     )
 
-    # Relationships (will be used in Phase 4)
-    # secrets: Mapped[list["Secret"]] = relationship(back_populates="owner")
+    # Relationships
+    secrets: Mapped[list["Secret"]] = relationship(
+        back_populates="owner",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"
+
+
+# Import here to avoid circular imports
+from app.models.secret import Secret  # noqa: E402
