@@ -3,6 +3,7 @@
 from app.core.config import Settings, get_settings
 from app.core.database import Base, get_db
 from app.core.deps import CurrentUser, get_current_active_user, get_current_user
+from app.core.encryption import decrypt, encrypt, derive_user_key
 from app.core.jwt import (
     create_access_token,
     create_refresh_token,
@@ -28,4 +29,7 @@ __all__ = [
     "hash_password",
     "verify_password",
     "check_needs_rehash",
+    "encrypt",
+    "decrypt",
+    "derive_user_key",
 ]

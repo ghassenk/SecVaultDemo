@@ -6,6 +6,13 @@ from app.schemas.auth import (
     Token,
     TokenPayload,
 )
+from app.schemas.secret import (
+    SecretCreate,
+    SecretList,
+    SecretResponse,
+    SecretUpdate,
+    SecretWithContent,
+)
 from app.schemas.user import (
     PasswordChange,
     UserCreate,
@@ -24,6 +31,9 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "UserUpdate",
+    "SecretCreate",
+    "SecretList",
+    "SecretResponse",
+    "SecretUpdate",
+    "SecretWithContent",
 ]
-
-# TODO Secret schemas
