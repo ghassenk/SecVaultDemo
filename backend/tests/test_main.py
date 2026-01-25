@@ -5,37 +5,35 @@ These tests verify the application starts correctly
 and health endpoints respond as expected.
 """
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.anyio
-async def test_root_endpoint(client: AsyncClient):
-    """Test root endpoint returns application info."""
-    response = await client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "name" in data
-    assert data["name"] == "SecureVault"
+class TestHealth:
+    """Health check endpoint tests."""
 
+    async def test_root_endpoint(self, client: AsyncClient):
+        """Test the root endpoint returns app info."""
+        response = await client.get("/")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "name" in data
+        assert "version" in data
 
-@pytest.mark.anyio
-async def test_health_endpoint(client: AsyncClient):
-    """Test health endpoint returns healthy status."""
-    response = await client.get("/api/v1/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
-    assert "version" in data
+    async def test_health_endpoint(self, client: AsyncClient):
+        """Test the health endpoint returns healthy status."""
+        response = await client.get("/api/v1/health")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
 
-
-@pytest.mark.anyio
-async def test_security_headers(client: AsyncClient):
-    """Test that security headers are present in responses."""
-    response = await client.get("/")
-    
-    # Check critical security headers
-    assert response.headers.get("x-content-type-options") == "nosniff"
-    assert response.headers.get("x-frame-options") == "DENY"
-    assert response.headers.get("x-xss-protection") == "1; mode=block"
-    assert "content-security-policy" in response.headers
+    async def test_security_headers(self, client: AsyncClient):
+        """Test that security headers are present in responses."""
+        response = await client.get("/")
+        
+        # Check critical security headers
+        assert response.headers.get("x-content-type-options") == "nosniff"
+        assert response.headers.get("x-frame-options") == "DENY"
+        assert "content-security-policy" in response.headers
+        

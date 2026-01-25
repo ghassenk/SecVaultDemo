@@ -1,12 +1,11 @@
 """
 Pytest configuration and shared fixtures.
 
-Sets up test database with proper isolation between tests.
+Uses async tests with proper event loop configuration.
 """
 
-from collections.abc import AsyncGenerator
-
 import pytest
+from collections.abc import AsyncGenerator
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -18,26 +17,35 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import get_settings
 from app.core.database import Base, get_db
+from app.main import create_application
 
 settings = get_settings()
 
 
+# Use a single event loop for the entire session
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    """Use default event loop policy."""
+    import asyncio
+    return asyncio.DefaultEventLoopPolicy()
+
+
 @pytest.fixture(scope="session")
 async def engine() -> AsyncGenerator[AsyncEngine, None]:
-    """Create the test database engine."""
+    """Create the test database engine once per session."""
     engine = create_async_engine(
         settings.database_url,
         echo=False,
         pool_pre_ping=True,
     )
     
-    # Create tables
+    # Create tables once
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
     yield engine
     
-    # Drop tables and dispose
+    # Drop tables and dispose after all tests
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
@@ -59,10 +67,9 @@ def session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 async def db_session(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional database session for tests."""
+    """Provide a database session for tests."""
     async with session_factory() as session:
         yield session
-        # Rollback any uncommitted changes
         await session.rollback()
 
 
@@ -71,12 +78,8 @@ async def client(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client with overridden database dependency."""
-    from app.main import create_application
-    
-    # Create a fresh app instance
     app = create_application()
     
-    # Override the get_db dependency
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with session_factory() as session:
             try:
@@ -102,7 +105,6 @@ async def clean_tables(
     """Clean all tables after each test for isolation."""
     yield
     async with session_factory() as session:
-        # Delete in correct order due to foreign keys
         await session.execute(text("DELETE FROM secrets"))
         await session.execute(text("DELETE FROM users"))
         await session.commit()
@@ -118,10 +120,7 @@ async def authenticated_client(
         "password": "SecureP@ssw0rd123!",
     }
     
-    # Register user
     await client.post("/api/v1/auth/register", json=user_data)
-    
-    # Login and get token
     response = await client.post("/api/v1/auth/login", json=user_data)
     token = response.json()["access_token"]
     
