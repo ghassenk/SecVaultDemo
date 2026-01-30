@@ -17,42 +17,43 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import get_settings
 from app.core.database import Base, get_db
+from app.core import database as db_module
 from app.main import create_application
 
 settings = get_settings()
 
 
-# Use a single event loop for the entire session
-@pytest.fixture(scope="session")
-def event_loop_policy():
-    """Use default event loop policy."""
-    import asyncio
-    return asyncio.DefaultEventLoopPolicy()
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def engine() -> AsyncGenerator[AsyncEngine, None]:
-    """Create the test database engine once per session."""
+    """Create the test database engine for each test."""
+    # Reset global engine to avoid cross-test contamination
+    db_module._engine = None
+    db_module._async_session_maker = None
+    
     engine = create_async_engine(
         settings.database_url,
         echo=False,
         pool_pre_ping=True,
     )
     
-    # Create tables once
+    # Create tables
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     
     yield engine
     
-    # Drop tables and dispose after all tests
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # Cleanup
     await engine.dispose()
 
 
-@pytest.fixture(scope="session")
-def session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+@pytest.fixture
+async def session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """Create session factory bound to test engine."""
     return async_sessionmaker(
         engine,
@@ -96,18 +97,6 @@ async def client(
         base_url="http://test"
     ) as ac:
         yield ac
-
-
-@pytest.fixture(autouse=True)
-async def clean_tables(
-    session_factory: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[None, None]:
-    """Clean all tables after each test for isolation."""
-    yield
-    async with session_factory() as session:
-        await session.execute(text("DELETE FROM secrets"))
-        await session.execute(text("DELETE FROM users"))
-        await session.commit()
 
 
 @pytest.fixture
