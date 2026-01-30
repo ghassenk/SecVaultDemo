@@ -86,7 +86,7 @@ def create_application() -> FastAPI:
         openapi_url="/openapi.json" if settings.debug else None,
         lifespan=lifespan,
     )
-
+    
     # Configure security (order matters - CORS should be outermost)
     configure_security_headers(app)
     configure_cors(app)

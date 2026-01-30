@@ -13,8 +13,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from app.core.security import limiter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,9 +33,6 @@ from app.schemas.user import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-# Rate limiter for auth endpoints
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post(

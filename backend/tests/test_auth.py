@@ -202,6 +202,7 @@ class TestTokenRefresh:
         
         assert response.status_code == 401
 
+    @pytest.mark.no_ratelimit
     @pytest.mark.anyio
     async def test_refresh_with_access_token_fails(self, client: AsyncClient):
         """Test that access token cannot be used for refresh."""
@@ -222,6 +223,7 @@ class TestTokenRefresh:
 class TestPasswordChange:
     """Tests for password change endpoint."""
 
+    @pytest.mark.no_ratelimit
     @pytest.mark.anyio
     async def test_change_password_success(self, client: AsyncClient):
         """Test successful password change."""
@@ -250,6 +252,7 @@ class TestPasswordChange:
         )
         assert login_response.status_code == 200
 
+    @pytest.mark.no_ratelimit
     @pytest.mark.anyio
     async def test_change_password_wrong_current(self, client: AsyncClient):
         """Test password change with wrong current password fails."""
