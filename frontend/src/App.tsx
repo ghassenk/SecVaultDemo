@@ -1,23 +1,40 @@
-import './App.css'
+import { useState } from 'react';
+import './App.css';
+import { AuthProvider, useAuth } from './contexts';
+import { LoginPage, RegisterPage, SecretsPage } from './pages';
+
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="loading-screen">
+          <h1>🔐 SecureVault</h1>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return showRegister ? (
+      <RegisterPage onSwitchToLogin={() => setShowRegister(false)} />
+    ) : (
+      <LoginPage onSwitchToRegister={() => setShowRegister(true)} />
+    );
+  }
+
+  return <SecretsPage />;
+}
 
 function App() {
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>🔐 SecureVault</h1>
-        <p>Your personal secrets manager</p>
-      </header>
-      <main className="app-main">
-        <div className="status-card">
-          <h2>Backend Status</h2>
-          <p>Phase 1 Complete - Frontend scaffold ready</p>
-          <p className="hint">
-            Full authentication UI will be added in Phase 5
-          </p>
-        </div>
-      </main>
-    </div>
-  )
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
