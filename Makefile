@@ -24,9 +24,17 @@ env-force:
 dev:
 	docker compose up
 
+# Start with rebuild (use after code changes)
+dev-build:
+	docker compose up --build
+
 # Start services in background
 dev-bg:
 	docker compose up -d
+
+# Rebuild and start in background
+dev-build-bg:
+	docker compose up --build -d
 
 # Stop all services
 down:
