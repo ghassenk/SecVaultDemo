@@ -6,6 +6,10 @@ Tests for user registration, login, and token management.
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
 
 
 # Test data
@@ -87,6 +91,7 @@ class TestRegistration:
 class TestLogin:
     """Tests for user login endpoint."""
 
+    @pytest.mark.no_ratelimit
     @pytest.mark.anyio
     async def test_login_success(self, client: AsyncClient):
         """Test successful login returns tokens."""
@@ -102,6 +107,7 @@ class TestLogin:
         assert "refresh_token" in data
         assert data["token_type"] == "bearer"
 
+    @pytest.mark.no_ratelimit
     @pytest.mark.anyio
     async def test_login_wrong_password(self, client: AsyncClient):
         """Test login with wrong password fails."""
@@ -217,6 +223,32 @@ class TestTokenRefresh:
         
         assert response.status_code == 401
 
+    @pytest.mark.no_ratelimit
+    @pytest.mark.anyio
+    async def test_refresh_with_inactive_user(self, client: AsyncClient, db_session: AsyncSession):
+        """Test refresh fails if user is deactivated."""
+        # Register and login
+        await client.post("/api/v1/auth/register", json=VALID_USER)
+        login_response = await client.post("/api/v1/auth/login", json=VALID_USER)
+        refresh_token = login_response.json()["refresh_token"]
+        
+        # Deactivate user directly in DB
+        result = await db_session.execute(
+            select(User).where(User.email == VALID_USER["email"])
+        )
+        user = result.scalar_one()
+        user.is_active = False
+        await db_session.commit()
+        
+        # Try to refresh - should fail
+        response = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        
+        assert response.status_code == 401
+        assert "inactive" in response.json()["detail"].lower() or "not found" in response.json()["detail"].lower()
+
 
 class TestPasswordChange:
     """Tests for password change endpoint."""
@@ -270,3 +302,47 @@ class TestPasswordChange:
         )
         
         assert response.status_code == 400
+
+    @pytest.mark.no_ratelimit
+    @pytest.mark.anyio
+    async def test_change_password_same_as_current(self, client: AsyncClient):
+        """Test password change with same password fails."""
+        # Register and login
+        await client.post("/api/v1/auth/register", json=VALID_USER)
+        login_response = await client.post("/api/v1/auth/login", json=VALID_USER)
+        access_token = login_response.json()["access_token"]
+        
+        # Try to change to the same password
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={
+                "current_password": VALID_USER["password"],
+                "new_password": VALID_USER["password"],
+            },
+        )
+        
+        assert response.status_code == 400
+        assert "different" in response.json()["detail"].lower()
+
+
+class TestLogout:
+    """Tests for logout endpoint."""
+
+    @pytest.mark.no_ratelimit
+    @pytest.mark.anyio
+    async def test_logout_success(self, client: AsyncClient):
+        """Test successful logout."""
+        # Register and login
+        await client.post("/api/v1/auth/register", json=VALID_USER)
+        login_response = await client.post("/api/v1/auth/login", json=VALID_USER)
+        access_token = login_response.json()["access_token"]
+        
+        # Logout
+        response = await client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        
+        assert response.status_code == 200
+        assert "logged out" in response.json()["message"].lower()
