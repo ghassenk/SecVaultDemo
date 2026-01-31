@@ -5,6 +5,7 @@ Tests for user registration, login, and token management.
 """
 
 import pytest
+from unittest.mock import patch
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -106,6 +107,30 @@ class TestLogin:
         assert "access_token" in data
         assert "refresh_token" in data
         assert data["token_type"] == "bearer"
+
+    @pytest.mark.no_ratelimit
+    @pytest.mark.anyio
+    async def test_login_triggers_password_rehash(self, client: AsyncClient, db_session: AsyncSession):
+        """Test that login rehashes password when needed."""
+        # Register user first
+        await client.post("/api/v1/auth/register", json=VALID_USER)
+        
+        # Get original hash
+        result = await db_session.execute(
+            select(User).where(User.email == VALID_USER["email"])
+        )
+        user = result.scalar_one()
+        original_hash = user.password_hash
+        
+        # Mock check_needs_rehash to return True
+        with patch("app.api.auth.check_needs_rehash", return_value=True):
+            response = await client.post("/api/v1/auth/login", json=VALID_USER)
+        
+        assert response.status_code == 200
+        
+        # Verify hash was updated
+        await db_session.refresh(user)
+        assert user.password_hash != original_hash
 
     @pytest.mark.no_ratelimit
     @pytest.mark.anyio
