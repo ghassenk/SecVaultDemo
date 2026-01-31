@@ -35,7 +35,7 @@ async def get_auth_token(client: AsyncClient, user: dict) -> str:
 
 class TestCreateSecret:
     """Tests for secret creation endpoint."""
-
+    @pytest.mark.no_ratelimit
     async def test_create_secret_success(self, client: AsyncClient):
         """Test successful secret creation."""
         token = await get_auth_token(client, TEST_USER)
@@ -60,6 +60,7 @@ class TestCreateSecret:
         
         assert response.status_code == 401
 
+    @pytest.mark.no_ratelimit
     async def test_create_secret_invalid_data(self, client: AsyncClient):
         """Test secret creation with invalid data fails."""
         token = await get_auth_token(client, TEST_USER)
@@ -76,6 +77,7 @@ class TestCreateSecret:
 class TestGetSecret:
     """Tests for secret retrieval endpoint."""
 
+    @pytest.mark.no_ratelimit
     async def test_get_secret_success(self, client: AsyncClient):
         """Test successful secret retrieval with decrypted content."""
         token = await get_auth_token(client, TEST_USER)
@@ -97,12 +99,13 @@ class TestGetSecret:
         assert data["name"] == TEST_SECRET["name"]
         assert data["content"] == TEST_SECRET["content"]
 
+    @pytest.mark.no_ratelimit
     async def test_get_secret_not_found(self, client: AsyncClient):
         """Test getting non-existent secret returns 404."""
         token = await get_auth_token(client, TEST_USER)
         
         response = await client.get(
-            "/api/v1/secrets/non-existent-idxxxxxxxxxxxxxxxxx",
+            "/api/v1/secrets/00000000-0000-0000-0000-000000000000",
             headers={"Authorization": f"Bearer {token}"},
         )
         

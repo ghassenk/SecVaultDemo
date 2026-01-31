@@ -6,11 +6,12 @@ and health endpoints respond as expected.
 """
 
 from httpx import AsyncClient
-
+import pytest
 
 class TestHealth:
     """Health check endpoint tests."""
 
+    @pytest.mark.no_ratelimit
     async def test_root_endpoint(self, client: AsyncClient):
         """Test the root endpoint returns app info."""
         response = await client.get("/")
