@@ -5,9 +5,7 @@ Tests for user registration, login, and token management.
 """
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
-from app.main import app
+from httpx import AsyncClient
 
 
 # Test data

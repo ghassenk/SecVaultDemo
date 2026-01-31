@@ -102,12 +102,13 @@ class TestGetSecret:
         token = await get_auth_token(client, TEST_USER)
         
         response = await client.get(
-            "/api/v1/secrets/non-existent-id",
+            "/api/v1/secrets/non-existent-idxxxxxxxxxxxxxxxxx",
             headers={"Authorization": f"Bearer {token}"},
         )
         
         assert response.status_code == 404
 
+    @pytest.mark.no_ratelimit
     async def test_get_secret_wrong_user(self, client: AsyncClient):
         """Test that users cannot access other users' secrets."""
         token1 = await get_auth_token(client, TEST_USER)
@@ -130,6 +131,7 @@ class TestGetSecret:
 class TestListSecrets:
     """Tests for secret listing endpoint."""
 
+    @pytest.mark.no_ratelimit
     async def test_list_secrets_success(self, client: AsyncClient):
         """Test listing secrets with pagination."""
         token = await get_auth_token(client, TEST_USER)
@@ -152,6 +154,7 @@ class TestListSecrets:
         assert "total" in data
         assert len(data["items"]) == 3
 
+    @pytest.mark.no_ratelimit
     async def test_list_secrets_pagination(self, client: AsyncClient):
         """Test pagination parameters work correctly."""
         token = await get_auth_token(client, TEST_USER)
@@ -166,6 +169,7 @@ class TestListSecrets:
         assert data["page"] == 1
         assert data["page_size"] == 2
 
+    @pytest.mark.no_ratelimit
     async def test_list_secrets_isolation(self, client: AsyncClient):
         """Test that users only see their own secrets."""
         token1 = await get_auth_token(client, TEST_USER)
@@ -189,6 +193,7 @@ class TestListSecrets:
 class TestUpdateSecret:
     """Tests for secret update endpoint."""
 
+    @pytest.mark.no_ratelimit
     async def test_update_secret_success(self, client: AsyncClient):
         """Test successful secret update."""
         token = await get_auth_token(client, TEST_USER)
@@ -209,6 +214,7 @@ class TestUpdateSecret:
         assert response.status_code == 200
         assert response.json()["name"] == "Updated Name"
 
+    @pytest.mark.no_ratelimit
     async def test_update_secret_partial(self, client: AsyncClient):
         """Test partial update (only name, not content)."""
         token = await get_auth_token(client, TEST_USER)
@@ -232,6 +238,7 @@ class TestUpdateSecret:
         )
         assert get_response.json()["content"] == TEST_SECRET["content"]
 
+    @pytest.mark.no_ratelimit
     async def test_update_secret_wrong_user(self, client: AsyncClient):
         """Test that users cannot update other users' secrets."""
         token1 = await get_auth_token(client, TEST_USER)
@@ -255,6 +262,7 @@ class TestUpdateSecret:
 class TestDeleteSecret:
     """Tests for secret deletion endpoint."""
 
+    @pytest.mark.no_ratelimit
     async def test_delete_secret_success(self, client: AsyncClient):
         """Test successful secret deletion."""
         token = await get_auth_token(client, TEST_USER)
@@ -279,6 +287,7 @@ class TestDeleteSecret:
         )
         assert get_response.status_code == 404
 
+    @pytest.mark.no_ratelimit
     async def test_delete_secret_wrong_user(self, client: AsyncClient):
         """Test that users cannot delete other users' secrets."""
         token1 = await get_auth_token(client, TEST_USER)
@@ -301,6 +310,7 @@ class TestDeleteSecret:
 class TestEncryption:
     """Tests specifically for encryption functionality."""
 
+    @pytest.mark.no_ratelimit
     async def test_encryption_per_user(self, client: AsyncClient):
         """Test that encryption is user-specific."""
         token1 = await get_auth_token(client, TEST_USER)
