@@ -16,7 +16,7 @@ test-cov:
 	ENCRYPTION_MASTER_KEY=$$(openssl rand -hex 32) \
 	ENVIRONMENT=testing \
 	DATABASE_URL=postgresql+asyncpg://securevault:securevault_dev_password@localhost:5432/securevault \
-	pytest --cov=app --cov-report=html
+	coverage run --concurrency=greenlet,thread -m pytest && coverage report --show-missing && coverage html
 
 lint:
 	ruff check app tests

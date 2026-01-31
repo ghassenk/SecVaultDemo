@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import get_settings
 from app.core.database import Base, get_db
 from app.core import database as db_module
-from app.main import create_application
+from app.main import app
 from app.core.security import limiter
 
 settings = get_settings()
@@ -81,7 +81,6 @@ async def client(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client with overridden database dependency."""
-    app = create_application()
     
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with session_factory() as session:
