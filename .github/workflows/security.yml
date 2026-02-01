@@ -67,6 +67,12 @@ jobs:
       - name: Run ESLint security
         run: cd frontend && npm run lint || true
 
+      - name: Build check
+        run: cd frontend && npm run build
+
+      - name: Smoke test
+        run: cd frontend && npm test
+
   dependency-scan:
     name: Dependency Vulnerabilities
     runs-on: ubuntu-latest
