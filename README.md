@@ -1,109 +1,142 @@
 # SecVaultDemo
-A security-focused personal secrets manager built to demonstrate application security best practices.
 
-## Overview
+A security-focused personal secrets manager demonstrating application security best practices.
 
-SecureVault allows users to securely store and manage sensitive information (API keys, passwords, notes) with encryption at rest and a defense-in-depth security approach.
+## Features
 
-## Security Features
-
-- **Authentication:** JWT-based auth with Argon2id password hashing
-- **Encryption at Rest:** AES-256-GCM for all stored secrets
-- **Input Validation:** Pydantic schemas with strict validation
-- **SQL Injection Prevention:** SQLAlchemy ORM with parameterized queries
-- **Security Headers:** Helmet-style middleware for HTTP security headers
-- **Rate Limiting:** Protection against brute-force attacks
-- **OWASP Top 10 Aligned:** See [SECURITY.md](docs/SECURITY.md) for details
+- 🔐 **Secure Authentication** - JWT tokens with Argon2id password hashing
+- 🔒 **Encryption at Rest** - AES-256-GCM with per-user key derivation (HKDF)
+- 🛡️ **Defense in Depth** - Security headers, input validation, rate limiting
+- 🐳 **Production Ready** - Docker Compose with network isolation, resource limits
+- 🚀 **CI/CD** - GitHub Actions with security scanning, Terraform deployment
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | Backend | FastAPI (Python 3.12) |
-| Frontend | React + TypeScript + Vite |
+| Frontend | React 18 + TypeScript + Vite |
 | Database | PostgreSQL 16 |
 | ORM | SQLAlchemy 2.0 (async) |
-| Containerization | Docker + Docker Compose |
+| Infrastructure | Docker, Terraform, AWS Lightsail |
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker and Docker Compose
-- Git
-
-### Run Locally
-
 ```bash
-# Clone the repository
+# Clone and setup
 git clone git@github.com:ghassenk/SecVaultDemo.git
 cd SecVaultDemo
 
-# Copy environment template
-cp .env.example .env
+# Generate .env with random secrets
+make env
 
 # Start all services
-docker compose up --build
+make dev-build
 
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+# Access
+# Frontend: http://localhost:8080
+# Backend API: http://localhost:8000/docs
 ```
 
 ## Project Structure
 
 ```
-securevault/
+SecVaultDemo/
 ├── backend/
 │   ├── app/
-│   │   ├── api/           # Route handlers
-│   │   ├── core/          # Config, security, encryption
+│   │   ├── api/           # Route handlers (auth, secrets, health)
+│   │   ├── core/          # Config, security, JWT, encryption
 │   │   ├── models/        # SQLAlchemy models
-│   │   ├── schemas/       # Pydantic schemas
-│   │   └── main.py        # FastAPI application
-│   ├── tests/             # Pytest test suite
-│   ├── Dockerfile
-│   └── requirements.txt
+│   │   └── schemas/       # Pydantic schemas
+│   └── tests/
 ├── frontend/
 │   ├── src/
-│   ├── Dockerfile
-│   └── package.json
-├── docker/
-│   └── docker-compose.yml
-├── .github/
-│   └── workflows/         # CI/CD security pipeline
-├── docs/
-│   ├── SECURITY.md        # Security documentation
-│   └── ARCHITECTURE.md    # Architecture details
-└── README.md
+│   │   ├── api/           # API client with token management
+│   │   ├── contexts/      # Auth context (tokens in memory)
+│   │   ├── pages/         # Login, Register, Secrets
+│   │   └── components/    # Modals, forms
+│   └── Dockerfile
+├── terraform/             # AWS Lightsail IaC
+├── .github/workflows/     # CI/CD pipelines
+├── docker-compose.yml     # Development
+└── docker-compose.prod.yml # Production
 ```
 
-## Security Pipeline
+## API Endpoints
 
-Every push and pull request triggers:
+```
+POST   /api/v1/auth/register        # Create account
+POST   /api/v1/auth/login           # Get tokens
+POST   /api/v1/auth/refresh         # Refresh access token
+POST   /api/v1/auth/logout          # Invalidate session
+GET    /api/v1/auth/me              # Current user
+POST   /api/v1/auth/change-password # Change password
 
-- 🔍 **Secrets Detection** - Gitleaks
-- 🛡️ **SAST Backend** - Bandit + Semgrep
-- 🛡️ **SAST Frontend** - ESLint security plugins
-- 📦 **Dependency Scanning** - Trivy
-- 🐳 **Container Scanning** - Trivy
-- 📝 **Dockerfile Linting** - Hadolint
+GET    /api/v1/secrets              # List (paginated)
+POST   /api/v1/secrets              # Create
+GET    /api/v1/secrets/{id}         # Get (decrypted)
+PUT    /api/v1/secrets/{id}         # Update
+DELETE /api/v1/secrets/{id}         # Delete
 
-## Documentation
+GET    /api/v1/health               # Health check
+```
 
-- [Security Documentation](docs/SECURITY.md) - Threat model and OWASP mapping
-- [Architecture](docs/ARCHITECTURE.md) - Technical architecture details
+## Security
 
+| Layer | Implementation |
+|-------|----------------|
+| Passwords | Argon2id (65MB memory, 3 iterations) |
+| Tokens | JWT HS256, 15min access / 7d refresh |
+| Encryption | AES-256-GCM + HKDF per-user keys |
+| Headers | CSP, X-Frame-Options, HSTS |
+| Frontend | Tokens in memory only (not localStorage) |
+
+See [docs/SECURITY.md](docs/SECURITY.md) for threat model and OWASP mapping.
+
+## CI/CD Pipeline
+
+Every push triggers:
+- 🔍 **Gitleaks** - Secret detection
+- 🛡️ **Bandit** - Python security analysis
+- 📦 **Trivy** - Dependency & container scanning
+- 🐳 **Hadolint** - Dockerfile linting
+- ✅ **Pytest** - Unit tests
+
+Deployment via Terraform to AWS Lightsail with OIDC authentication (no stored credentials).
 
 ## Development
 
-### Backend
+```bash
+# Backend only
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+make test
 
-### Frontend
+# Frontend only
 cd frontend
 npm install
+npm run dev
+
+# Full stack
+make dev          # Start all containers
+make dev-build    # Rebuild and start
+make prod-build   # Production build
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `JWT_SECRET_KEY` | 256-bit hex for JWT signing |
+| `ENCRYPTION_MASTER_KEY` | 256-bit hex for AES encryption |
+| `POSTGRES_PASSWORD` | Database password |
+| `ENVIRONMENT` | development / production |
+
+Generate with: `make env`
+
+## Documentation
+
+- [Security Documentation](docs/SECURITY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API Testing Guide](backend/doc/API_TESTING.md)
