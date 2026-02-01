@@ -12,11 +12,15 @@ useDefault = true
 description = "Allowed patterns"
 paths = [
     '''.env.example''',
+    '''env.production.example''',
+    '''terraform.tfvars.example''',
     '''docs/''',
 ]
 regexes = [
     '''CHANGE_ME''',
     '''example''',
+    '''test-secret-key-for-ci''',
+    '''0123456789abcdef''',
 ]
 
 # Additional rules for project-specific secrets

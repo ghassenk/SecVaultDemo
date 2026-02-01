@@ -1,0 +1,174 @@
+name: Deploy to AWS Lightsail
+
+on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - 'terraform/**'
+#       - '.github/workflows/deploy.yml'
+#   pull_request:
+#     branches: [main]
+#     paths:
+#       - 'terraform/**'
+  workflow_dispatch: # Manual trigger
+
+env:
+  TF_VERSION: '1.7.0'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create tfvars from secrets
+        run: |
+          cat > terraform.tfvars << EOF
+          aws_region        = "${{ env.AWS_REGION }}"
+          instance_name     = "${{ vars.INSTANCE_NAME || 'secvault-prod' }}"
+          bundle_id         = "${{ vars.BUNDLE_ID || 'nano_3_0' }}"
+          key_pair_name     = "${{ secrets.LIGHTSAIL_KEY_PAIR_NAME }}"
+          repo_url          = "${{ github.server_url }}/${{ github.repository }}.git"
+          domain_name       = "${{ vars.DOMAIN_NAME || '' }}"
+          ssh_allowed_cidrs = ${{ secrets.SSH_ALLOWED_CIDRS || '["0.0.0.0/0"]' }}
+          EOF
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        continue-on-error: true
+
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Plan 📖
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+
+      - name: Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create tfvars from secrets
+        run: |
+          cat > terraform.tfvars << EOF
+          aws_region        = "${{ env.AWS_REGION }}"
+          instance_name     = "${{ vars.INSTANCE_NAME || 'secvault-prod' }}"
+          bundle_id         = "${{ vars.BUNDLE_ID || 'nano_3_0' }}"
+          key_pair_name     = "${{ secrets.LIGHTSAIL_KEY_PAIR_NAME }}"
+          repo_url          = "${{ github.server_url }}/${{ github.repository }}.git"
+          domain_name       = "${{ vars.DOMAIN_NAME || '' }}"
+          ssh_allowed_cidrs = ${{ secrets.SSH_ALLOWED_CIDRS || '["0.0.0.0/0"]' }}
+          EOF
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Outputs
+        id: outputs
+        run: |
+          echo "static_ip=$(terraform output -raw static_ip)" >> $GITHUB_OUTPUT
+          echo "ssh_command=$(terraform output -raw ssh_command)" >> $GITHUB_OUTPUT
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Static IP:** ${{ steps.outputs.outputs.static_ip }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** http://${{ steps.outputs.outputs.static_ip }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. SSH: \`${{ steps.outputs.outputs.ssh_command }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Start app: \`cd /opt/secvault && sudo make prod-build\`" >> $GITHUB_STEP_SUMMARY

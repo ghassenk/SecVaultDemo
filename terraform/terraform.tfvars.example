@@ -1,0 +1,26 @@
+# Copy this file to terraform.tfvars and fill in your values
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region    = "us-east-1"
+instance_name = "secvault-prod"
+
+# Instance size:
+#   "micro_3_0" = $3.50/month (512MB RAM) - tight but works
+#   "nano_3_0"  = $5/month (1GB RAM) - recommended
+#   "small_3_0" = $10/month (2GB RAM) - comfortable
+bundle_id = "nano_3_0"
+
+# Create this key pair in AWS Lightsail console first!
+# Lightsail > Account > SSH keys > Create new
+key_pair_name = "secvault-key"
+
+# Your Git repository URL
+repo_url = "https://github.com/yourusername/SecVaultDemo.git"
+
+# Domain name (optional - leave empty to skip nginx/SSL setup)
+# Point your domain's A record to the static IP after deployment
+domain_name = ""
+
+# Restrict SSH access to your IP for better security
+# Find your IP: curl ifconfig.me
+ssh_allowed_cidrs = ["0.0.0.0/0"]  # Change to ["YOUR.IP.HERE/32"]

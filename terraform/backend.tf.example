@@ -1,0 +1,23 @@
+# Uncomment and configure for remote state storage (recommended for CI/CD)
+# This prevents state conflicts when multiple people/pipelines run terraform
+
+# Option 1: S3 Backend (requires S3 bucket + DynamoDB table)
+# terraform {
+#   backend "s3" {
+#     bucket         = "your-terraform-state-bucket"
+#     key            = "secvault/terraform.tfstate"
+#     region         = "us-east-1"
+#     encrypt        = true
+#     dynamodb_table = "terraform-locks"  # For state locking
+#   }
+# }
+
+# Option 2: Terraform Cloud (free for small teams)
+# terraform {
+#   cloud {
+#     organization = "your-org"
+#     workspaces {
+#       name = "secvault-prod"
+#     }
+#   }
+# }
