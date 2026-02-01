@@ -9,7 +9,7 @@
 # ============================================
 
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /build
 
