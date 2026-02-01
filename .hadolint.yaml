@@ -1,0 +1,12 @@
+# Hadolint configuration
+# https://github.com/hadolint/hadolint
+
+ignored:
+  # Apt version pinning - versions depend on base image, impractical to maintain
+  - DL3008
+  # Pip version pinning - we use requirements.txt with pinned versions
+  - DL3013
+
+trustedRegistries:
+  - docker.io
+  - ghcr.io
