@@ -18,7 +18,7 @@ passlib==1.7.4
 argon2-cffi==25.1.0
 
 # Security - Encryption
-cryptography==44.0.0
+cryptography==46.0.4
 
 # Security - Rate Limiting
 slowapi==0.1.9
@@ -32,7 +32,7 @@ pytest-asyncio==0.25.0
 pytest-cov==6.0.0
 
 # Code Quality
-ruff==0.8.4
+ruff==0.14.14
 
 # Environment
 python-dotenv==1.0.1
