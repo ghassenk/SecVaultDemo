@@ -94,7 +94,7 @@ jobs:
             })
 
       - name: Upload Plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tfplan
           path: terraform/tfplan
