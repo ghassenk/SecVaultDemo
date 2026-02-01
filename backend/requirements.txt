@@ -15,7 +15,7 @@ email-validator==2.2.0
 # Security - Authentication
 python-jose[cryptography]==3.3.0
 passlib==1.7.4
-argon2-cffi==23.1.0
+argon2-cffi==25.1.0
 
 # Security - Encryption
 cryptography==44.0.0
