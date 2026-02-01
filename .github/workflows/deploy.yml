@@ -108,7 +108,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: terraform-plan
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
     permissions:
       id-token: write   # Required for OIDC
       contents: read
