@@ -1,6 +1,22 @@
 frontend:
-- frontend/**/*
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**/*'
+
 backend:
-- backend/**/*
+  - changed-files:
+      - any-glob-to-any-file: 'backend/**/*'
+
 documentation:
-- "**.md"
+  - changed-files:
+      - any-glob-to-any-file: '**/*.md'
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'terraform/**/*'
+          - 'docker-compose*.yml'
+          - '**/Dockerfile'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**/*'
