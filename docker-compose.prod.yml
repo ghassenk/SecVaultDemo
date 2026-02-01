@@ -1,0 +1,144 @@
+# ============================================
+# SecureVault Production Docker Compose
+# ============================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Security considerations:
+# - All containers run as non-root
+# - No ports exposed except frontend (reverse proxy)
+# - Secrets via environment variables (use Docker secrets in swarm)
+# - Read-only filesystems where possible
+# - Resource limits to prevent DoS
+# - Network isolation between services
+# ============================================
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: securevault-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Security: No external ports in production
+    # ports:
+    #   - "5432:5432"
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      target: production
+    container_name: securevault-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY}
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://yourdomain.com}
+    # Security: No external ports - only accessible via frontend proxy
+    # ports:
+    #   - "8000:8000"
+    networks:
+      - backend-network
+      - frontend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Nginx Frontend (serves static files + reverse proxy)
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    container_name: securevault-frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:3000"
+      # For HTTPS, use a reverse proxy like Traefik or add:
+      # - "443:443"
+    networks:
+      - frontend-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Required for nginx
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /var/log/nginx
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+networks:
+  backend-network:
+    driver: bridge
+    internal: true  # No external access
+  frontend-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

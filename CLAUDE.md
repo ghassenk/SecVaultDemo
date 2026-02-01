@@ -23,19 +23,24 @@ SecureVault is a security-focused personal secrets manager demonstrating applica
 - Row-level authorization (users only see their own secrets)
 - 404 returned for both non-existent and unauthorized (no info leakage)
 
-### 🔲 Next Up
-
 **Phase 5: React Frontend**
-- Login/Register forms
+- Login/Register forms with password strength indicator
 - Secrets list view (paginated)
-- Create/Edit/Delete secret modals
+- Create/Edit/Delete secret modals with show/hide toggle
 - Secure token handling (memory only, NOT localStorage)
+- Auto token refresh on 401
 - Proper logout with token clearing
 
 **Phase 6: Docker Compose Integration**
-- Full stack deployment
-- Environment configuration
-- Production hardening
+- Development compose (docker-compose.yml) with hot reload friendly setup
+- Production compose (docker-compose.prod.yml) with:
+  - Network isolation (backend-network internal, no external DB access)
+  - Read-only filesystems where possible
+  - Resource limits (CPU/memory)
+  - All containers run as non-root
+  - Security headers via nginx
+- Makefile with dev/prod commands
+- Environment file generation (`make env`)
 
 ## Architecture
 

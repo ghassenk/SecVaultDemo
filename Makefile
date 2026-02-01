@@ -43,3 +43,33 @@ down:
 # Clean up (stop containers, remove volumes)
 clean:
 	docker compose down -v
+
+# ============================================
+# Production Commands
+# ============================================
+
+# Start production stack
+prod:
+	docker compose -f docker-compose.prod.yml up -d
+
+# Build and start production
+prod-build:
+	docker compose -f docker-compose.prod.yml up --build -d
+
+# Stop production
+prod-down:
+	docker compose -f docker-compose.prod.yml down
+
+# View logs
+logs:
+	docker compose logs -f
+
+logs-prod:
+	docker compose -f docker-compose.prod.yml logs -f
+
+# Check status
+status:
+	docker compose ps
+
+status-prod:
+	docker compose -f docker-compose.prod.yml ps
