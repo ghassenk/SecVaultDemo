@@ -19,7 +19,7 @@ paths = [
 regexes = [
     '''CHANGE_ME''',
     '''example''',
-    '''test-secret-key-for-ci''',
+    '''deadbeef''',
     '''0123456789abcdef''',
 ]
 
