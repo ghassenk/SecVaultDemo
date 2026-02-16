@@ -187,6 +187,9 @@ jobs:
 
       - name: Build and start services
         run: docker compose up -d --build
+        env:
+          JWT_SECRET_KEY: deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+          ENCRYPTION_MASTER_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
       - name: Wait for backend to be healthy
         run: |
